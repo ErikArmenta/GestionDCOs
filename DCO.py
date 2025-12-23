@@ -9,17 +9,20 @@ import streamlit as st
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# ========================
-# Auto-refresh cada 10 segundos
-# ========================
+# Configuración de página
+st.set_page_config(page_title="CRTL de DCO's", page_icon="📄", layout="wide")
+
+# 1. AUTO-REFRESH EFECTIVO
+# Al usar ttl=10 en el cache y refresh cada 10s, forzamos la lectura del CSV
 st_autorefresh(interval=10000, key="refresh")
 
-st.set_page_config(page_title="CRTL de DCO's", page_icon="📄", layout="wide")
 st.title("Dashboard de Actividades")
 
 CSV_URL = "https://docs.google.com/spreadsheets/d/1usygK9pJTsMOkcvXFByrn0d0yqjJiJX9Vl715UIz1bY/export?format=csv&gid=1905231957"
 
-@st.cache_data
+# 2. CACHÉ DINÁMICO
+# Agregamos ttl (Time To Live) para que el cache expire solo cada 10 segundos
+@st.cache_data(ttl=10)
 def cargar_datos(url):
     df = pd.read_csv(url)
     df = df.rename(columns={
@@ -37,6 +40,7 @@ def cargar_datos(url):
 
 df = cargar_datos(CSV_URL)
 
+# Filtros
 lineas = ["Todas"] + sorted(df["linea"].dropna().unique())
 maquinas = ["Todas"] + sorted(df["maquina"].dropna().unique())
 
@@ -49,51 +53,58 @@ if linea_sel != "Todas":
 if maquina_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado["maquina"] == maquina_sel]
 
-st.caption(f"Mostrando {len(df_filtrado)} registros")
+# ========================
+# 3. LÓGICA DE AGRUPACIÓN (Única Card por Máquina)
+# ========================
+# Creamos un DataFrame que solo contenga la última actividad de cada máquina para la Card
+df_cards = df_filtrado.drop_duplicates(subset=['linea', 'maquina'], keep='first')
 
-# ========================
-# Modal para ver historial
-# ========================
+st.caption(f"Mostrando {len(df_cards)} máquinas registradas")
+
 @st.dialog("Historial de actualizaciones")
 def ver_historial(linea, maquina):
-    hist = df_filtrado.copy()
-    hist = hist[(hist["linea"] == linea) & (hist["maquina"] == maquina)]
+    # Buscamos TODO el historial de esa máquina específica
+    hist = df[ (df["linea"] == linea) & (df["maquina"] == maquina) ]
     hist = hist.sort_values("timestamp", ascending=False)
 
+    st.subheader(f"Historial: {maquina} ({linea})")
+    st.divider()
+
     if hist.empty:
-        st.info("⚠️ No hay historial disponible para esta línea/máquina.")
+        st.info("⚠️ No hay historial disponible.")
     else:
         for _, row in hist.iterrows():
-            st.markdown(f"**{row['timestamp'].strftime('%Y-%m-%d %H:%M')}** - {row['actividad']}")
-            st.write(row["descripcion"])
-            st.markdown(f"[Ver PDF]({row['archivo']}) 🔗")
+            with st.container():
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"**📅 {row['fecha']}**")
+                    st.markdown(f"**Actividad:** {row['actividad']}")
+                    st.write(f"{row['descripcion']}")
+                with col2:
+                    st.markdown(f"[⬇️ Descargar]({row['archivo']})")
+                st.divider()
 
 # ========================
-# Cards (solo info + links)
+# Visualización de Cards
 # ========================
-if len(df_filtrado) == 0:
+if len(df_cards) == 0:
     st.info("⚠️ No hay registros disponibles para los filtros seleccionados.")
 else:
     n_cols = 3
-    rows = [df_filtrado.iloc[i:i+n_cols] for i in range(0, len(df_filtrado), n_cols)]
-
-    for row_group in rows:
+    # Iteramos sobre las máquinas únicas
+    for i in range(0, len(df_cards), n_cols):
         cols = st.columns(n_cols)
-        for col, (_, row) in zip(cols, row_group.iterrows()):
+        for col, (_, row) in zip(cols, df_cards.iloc[i:i+n_cols].iterrows()):
             with col:
                 with st.container(border=True):
-                    st.subheader(row["actividad"])
-                    st.write(row["descripcion"])
-                    st.write(f"📅 Fecha: {row['fecha']}")
-                    st.write(f"🏭 Línea: {row['linea']} | ⚙️ Máquina: {row['maquina']}")
+                    st.subheader(row["maquina"])
+                    st.write(f"📍 **Línea:** {row['linea']}")
+                    st.write(f"⏱️ **Última act:** {row['actividad']}")
+                    st.caption(f"Fecha: {row['fecha']}")
 
-                    # Botón para abrir modal con historial
-                    if st.button("📄 Historial", key=f"hist_{row.name}"):
+                    # El botón de historial ahora filtra por la máquina de esta card
+                    if st.button("📄 Ver Historial Completo", key=f"btn_{row['linea']}_{row['maquina']}"):
                         ver_historial(row["linea"], row["maquina"])
-
-                    # Link directo al PDF
-                    st.markdown(f"[⬇️ Descargar PDF]({row['archivo']})")
-
 
 # ========================
 # Footer
