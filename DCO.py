@@ -63,26 +63,40 @@ st.caption(f"Mostrando {len(df_cards)} máquinas registradas")
 
 @st.dialog("Historial de actualizaciones")
 def ver_historial(linea, maquina):
-    # Buscamos TODO el historial de esa máquina específica
-    hist = df[ (df["linea"] == linea) & (df["maquina"] == maquina) ]
+    # Buscamos todo el historial de esa máquina específica
+    hist = df[(df["linea"] == linea) & (df["maquina"] == maquina)]
     hist = hist.sort_values("timestamp", ascending=False)
 
-    st.subheader(f"Historial: {maquina} ({linea})")
+    st.subheader(f"Registro de: {maquina}")
+    st.caption(f"Línea: {linea}")
     st.divider()
 
     if hist.empty:
         st.info("⚠️ No hay historial disponible.")
     else:
         for _, row in hist.iterrows():
-            with st.container():
-                col1, col2 = st.columns([3, 1])
-                with col1:
-                    st.markdown(f"**📅 {row['fecha']}**")
-                    st.markdown(f"**Actividad:** {row['actividad']}")
-                    st.write(f"{row['descripcion']}")
-                with col2:
-                    st.markdown(f"[⬇️ Descargar]({row['archivo']})")
-                st.divider()
+            # Creamos un expander por cada registro
+            # El título del expander muestra la fecha y la actividad principal
+            label = f"📅 {row['fecha']} - {row['actividad']}"
+
+            with st.expander(label):
+                col_info, col_doc = st.columns([1, 1])
+
+                with col_info:
+                    st.markdown("**Descripción:**")
+                    st.write(row["descripcion"])
+                    st.markdown(f"[⬇️ Descargar Documento]({row['archivo']})")
+
+                with col_doc:
+                    # Intentar visualizar el PDF si el navegador lo permite
+                    # Nota: Algunos navegadores bloquean el embed de Drive por seguridad
+                    st.markdown("**Vista previa rápida:**")
+                    st.info("Haz clic en descargar para ver el archivo completo.")
+                    # Si quieres intentar mostrarlo (opcional):
+                    # st.markdown(f'<iframe src="{row["archivo"]}" width="100%" height="300px"></iframe>', unsafe_allow_html=True)
+
+    if st.button("Cerrar"):
+        st.rerun()
 
 # ========================
 # Visualización de Cards
@@ -115,6 +129,7 @@ st.markdown(
     "</p>",
     unsafe_allow_html=True
 )
+
 
 
 
