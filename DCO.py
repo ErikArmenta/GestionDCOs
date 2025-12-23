@@ -22,7 +22,7 @@ CSV_URL = "https://docs.google.com/spreadsheets/d/1usygK9pJTsMOkcvXFByrn0d0yqjJi
 
 # 2. CACHÉ DINÁMICO
 # Agregamos ttl (Time To Live) para que el cache expire solo cada 10 segundos
-@st.cache_data(ttl=10)
+@st.cache_data(ttl=60)
 def cargar_datos(url):
     df = pd.read_csv(url)
     df = df.rename(columns={
@@ -115,6 +115,7 @@ st.markdown(
     "</p>",
     unsafe_allow_html=True
 )
+
 
 
 
