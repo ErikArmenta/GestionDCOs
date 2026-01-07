@@ -25,16 +25,31 @@ CSV_URL = "https://docs.google.com/spreadsheets/d/1usygK9pJTsMOkcvXFByrn0d0yqjJi
 @st.cache_data(ttl=60)
 def cargar_datos(url):
     df = pd.read_csv(url)
+    
+    # Limpiamos espacios en blanco accidentales en los nombres de las columnas
+    df.columns = df.columns.str.strip()
+    
+    # Renombrado basado en tus nuevos encabezados
+    # Nota: Asegúrate de que las mayúsculas coincidan exactamente con tu hoja
     df = df.rename(columns={
         "Marca temporal": "timestamp",
-        "Nombre de la Actividad": "actividad",
-        "Descipcion": "descripcion",
+        "Nombre de la actividad": "actividad",
+        "Descripcion de la actividad": "descripcion",
         "Fecha": "fecha",
         "Linea": "linea",
         "Maquina": "maquina",
         "Agrega el archivo PDF o escaneado": "archivo"
     })
+    
+    # Convertir fecha de registro
     df["timestamp"] = pd.to_datetime(df["timestamp"])
+    
+    # Asegurarnos de que las columnas usadas en filtros existan para evitar errores
+    for col in ["linea", "maquina", "actividad", "descripcion"]:
+        if col not in df.columns:
+            # Si una columna no se renombró bien, creamos una vacía para que no truene el dashboard
+            df[col] = "No disponible"
+            
     df = df.sort_values("timestamp", ascending=False)
     return df
 
@@ -129,6 +144,7 @@ st.markdown(
     "</p>",
     unsafe_allow_html=True
 )
+
 
 
 
