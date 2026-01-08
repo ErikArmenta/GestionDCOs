@@ -16,7 +16,7 @@ st.set_page_config(page_title="CRTL de DCO's", page_icon="📄", layout="wide")
 # Al usar ttl=10 en el cache y refresh cada 10s, forzamos la lectura del CSV
 st_autorefresh(interval=10000, key="refresh")
 
-st.title("Dashboard de Actividades")
+st.title("Panel de control de documentos")
 
 CSV_URL = "https://docs.google.com/spreadsheets/d/1usygK9pJTsMOkcvXFByrn0d0yqjJiJX9Vl715UIz1bY/export?format=csv&gid=1905231957"
 
@@ -144,6 +144,7 @@ st.markdown(
     "</p>",
     unsafe_allow_html=True
 )
+
 
 
 
