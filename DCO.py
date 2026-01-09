@@ -166,10 +166,3 @@ st.markdown("<br><hr><p style='text-align:center; color:gray;'>Gestión de Docum
 
 
 
-
-
-
-
-
-
-
