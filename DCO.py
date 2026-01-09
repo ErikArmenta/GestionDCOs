@@ -2,9 +2,41 @@
 import streamlit as st
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
+from PIL import Image
+import os
 
 # Configuración de página
 st.set_page_config(page_title="CRTL de DCO's", page_icon="📄", layout="wide")
+
+# --- ESTILO UNIFICADO PARA EL SIDEBAR ---
+st.markdown("""
+    <style>
+        /* Forzar tamaño de letra idéntico en el menú lateral */
+        [data-testid="stSidebarNav"] span {
+            font-size: 20px !important; /* Ajusta este número a tu gusto */
+            font-weight: bold !important;
+            text-transform: capitalize;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Carga de Logo
+try:
+    logo_path = os.path.join(os.path.dirname(__file__), "EA_2.png")
+    image = Image.open(logo_path)
+    st.sidebar.image(image, use_container_width=True)
+except:
+    st.sidebar.error("Logo no encontrado")
+
+st.sidebar.markdown("<h3 style='text-align: center;'>Soporte Eléctrico</h3>", unsafe_allow_html=True)
+st.sidebar.divider()
+
+# Estilo para que los nombres en el sidebar se vean mejor
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] span { font-size: 18px; font-weight: bold; }
+    </style>
+""", unsafe_allow_html=True)
 
 # ==========================================
 # 1. GESTIÓN DE ESTADO (Para evitar cierres)
@@ -12,11 +44,10 @@ st.set_page_config(page_title="CRTL de DCO's", page_icon="📄", layout="wide")
 if "maquina_seleccionada" not in st.session_state:
     st.session_state.maquina_seleccionada = None
 
-# Solo activamos el autorefresh si NO hay un diálogo abierto
 if st.session_state.maquina_seleccionada is None:
     st_autorefresh(interval=10000, key="refresh_global")
 
-st.title("Panel de control de documentos")
+st.title("📄 Panel de control de documentos")
 
 CSV_URL = "https://docs.google.com/spreadsheets/d/1usygK9pJTsMOkcvXFByrn0d0yqjJiJX9Vl715UIz1bY/export?format=csv&gid=1905231957"
 
@@ -36,8 +67,6 @@ def cargar_datos(url):
         })
         df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-        # --- ESTANDARIZACIÓN A MAYÚSCULAS ---
-        # Aplicamos mayúsculas a linea y maquina para evitar duplicados por formato
         if "linea" in df.columns:
             df["linea"] = df["linea"].astype(str).str.upper().str.strip()
         if "maquina" in df.columns:
@@ -46,7 +75,6 @@ def cargar_datos(url):
         for col in ["linea", "maquina", "actividad", "descripcion"]:
             if col not in df.columns:
                 df[col] = "No disponible"
-
         return df.sort_values("timestamp", ascending=False)
     except Exception as e:
         st.error(f"Error cargando datos: {e}")
@@ -70,7 +98,6 @@ if linea_sel != "Todas":
 if maquina_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado["maquina"] == maquina_sel]
 
-# Agrupación para las Cards (última actividad por máquina)
 df_cards = df_filtrado.drop_duplicates(subset=['linea', 'maquina'], keep='first')
 
 # ==========================================
@@ -78,12 +105,10 @@ df_cards = df_filtrado.drop_duplicates(subset=['linea', 'maquina'], keep='first'
 # ==========================================
 @st.dialog("Historial de actualizaciones")
 def mostrar_dialogo_historial():
-    # Recuperamos los datos de la sesión
     seleccion = st.session_state.maquina_seleccionada
     if seleccion:
         linea = seleccion["linea"]
         maquina = seleccion["maquina"]
-
         hist = df[(df["linea"] == linea) & (df["maquina"] == maquina)]
         hist = hist.sort_values("timestamp", ascending=False)
 
@@ -99,7 +124,6 @@ def mostrar_dialogo_historial():
                 with st.expander(label):
                     c1, c2 = st.columns([1, 1])
                     with c1:
-                        # --- DESCRIPCIÓN CENTRADA ---
                         st.markdown("<p style='text-align: center;'><b>Descripción:</b></p>", unsafe_allow_html=True)
                         st.markdown(f"<p style='text-align: center;'>{row['descripcion']}</p>", unsafe_allow_html=True)
                     with c2:
@@ -109,7 +133,6 @@ def mostrar_dialogo_historial():
             st.session_state.maquina_seleccionada = None
             st.rerun()
 
-# Lanzar el diálogo si hay algo seleccionado
 if st.session_state.maquina_seleccionada is not None:
     mostrar_dialogo_historial()
 
@@ -131,17 +154,12 @@ else:
                     st.write(f"📍 **Línea:** {row['linea']}")
                     st.write(f"⏱️ **Última act:** {row['actividad']}")
                     st.caption(f"Fecha: {row['fecha']}")
-
-                    # Al hacer clic, guardamos en el estado y recargamos para abrir el diálogo
                     if st.button("📄 Ver Historial", key=f"btn_{row['linea']}_{row['maquina']}"):
-                        st.session_state.maquina_seleccionada = {
-                            "linea": row['linea'],
-                            "maquina": row['maquina']
-                        }
+                        st.session_state.maquina_seleccionada = {"linea": row['linea'], "maquina": row['maquina']}
                         st.rerun()
 
-# Footer
 st.markdown("<br><hr><p style='text-align:center; color:gray;'>Gestión de Documentos | Developed by Erik Armenta</p>", unsafe_allow_html=True)
+
 
 
 
