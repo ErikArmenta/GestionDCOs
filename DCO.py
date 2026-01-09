@@ -35,9 +35,18 @@ def cargar_datos(url):
             "Agrega el archivo PDF o escaneado": "archivo"
         })
         df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+        # --- ESTANDARIZACIÓN A MAYÚSCULAS ---
+        # Aplicamos mayúsculas a linea y maquina para evitar duplicados por formato
+        if "linea" in df.columns:
+            df["linea"] = df["linea"].astype(str).str.upper().str.strip()
+        if "maquina" in df.columns:
+            df["maquina"] = df["maquina"].astype(str).str.upper().str.strip()
+
         for col in ["linea", "maquina", "actividad", "descripcion"]:
             if col not in df.columns:
                 df[col] = "No disponible"
+
         return df.sort_values("timestamp", ascending=False)
     except Exception as e:
         st.error(f"Error cargando datos: {e}")
@@ -90,8 +99,9 @@ def mostrar_dialogo_historial():
                 with st.expander(label):
                     c1, c2 = st.columns([1, 1])
                     with c1:
-                        st.markdown("**Descripción:**")
-                        st.write(row["descripcion"])
+                        # --- DESCRIPCIÓN CENTRADA ---
+                        st.markdown("<p style='text-align: center;'><b>Descripción:</b></p>", unsafe_allow_html=True)
+                        st.markdown(f"<p style='text-align: center;'>{row['descripcion']}</p>", unsafe_allow_html=True)
                     with c2:
                         st.link_button("📂 Ver Documento", str(row['archivo']))
 
@@ -132,6 +142,7 @@ else:
 
 # Footer
 st.markdown("<br><hr><p style='text-align:center; color:gray;'>Gestión de Documentos | Developed by Erik Armenta</p>", unsafe_allow_html=True)
+
 
 
 
