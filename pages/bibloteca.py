@@ -30,24 +30,26 @@ except:
 st.sidebar.markdown("<h3 style='text-align: center;'>Soporte Eléctrico</h3>", unsafe_allow_html=True)
 st.sidebar.divider()
 
-CSV_URL_BIBLIOTECA = "https://docs.google.com/spreadsheets/d/1Cw0ljwnMm2ax-1jS_VUmwOP74wegs9ms1lOuVPDP2_s/export?format=csv&gid=1799691248"
+CSV_URL_BIBLIOTECA = "https://docs.google.com/spreadsheets/d/1G6BpbdZ4Ve6MQpAA85I5Ya9Fz2MNH4i5YBSqbvrCNL4/export?format=csv&gid=1068115575"
 
 @st.cache_data(ttl=60)
 def cargar_datos_biblioteca(url):
     try:
         df = pd.read_csv(url)
-        df.columns = df.columns.str.strip()
+        # 1. Estandarizar nombres de columnas a minúsculas
+        df.columns = df.columns.str.strip().str.lower()
+
+        # 2. Renombrar usando los nombres en minúscula
         df = df.rename(columns={
-            "Marca temporal": "timestamp",
-            "Nombre del documento": "nombre",
-            "Equipo o maquina relacionada": "equipo",
-            "Categoria del recurso": "categoria",
-            "Descripcion breve": "descripcion",
-            "Subir archivo": "archivo"
+            "marca temporal": "timestamp",
+            "nombre del documento": "nombre",
+            "equipo o maquina relacionado": "equipo",
+            "categoria del recurso": "categoria",
+            "descripcion breve": "descripcion",
+            "subir archivo_rec": "archivo"
         })
 
-        # --- ESTANDARIZACIÓN A MAYÚSCULAS ---
-        # Aplicamos a nombre, equipo y categoria para mantener el estilo visual
+        # 3. Forzar mayúsculas para las etiquetas de las cards
         cols_to_upper = ["nombre", "equipo", "categoria"]
         for col in cols_to_upper:
             if col in df.columns:
@@ -55,7 +57,7 @@ def cargar_datos_biblioteca(url):
 
         return df.sort_values("nombre", ascending=True)
     except Exception as e:
-        st.error(f"Error cargando biblioteca: {e}")
+        st.error(f"Error en Biblioteca: {e}")
         return pd.DataFrame()
 
 st.title("📚 Biblioteca Técnica de Soporte")
