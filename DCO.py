@@ -49,32 +49,42 @@ if st.session_state.maquina_seleccionada is None:
 
 st.title("📄 Panel de control de documentos")
 
-CSV_URL = "https://docs.google.com/spreadsheets/d/1usygK9pJTsMOkcvXFByrn0d0yqjJiJX9Vl715UIz1bY/export?format=csv&gid=1905231957"
+# Fíjate que termina en &gid=989718143 (sin el símbolo #)
+CSV_URL = "https://docs.google.com/spreadsheets/d/1G6BpbdZ4Ve6MQpAA85I5Ya9Fz2MNH4i5YBSqbvrCNL4/export?format=csv&gid=989718143"
 
 @st.cache_data(ttl=60)
 def cargar_datos(url):
     try:
         df = pd.read_csv(url)
+        # 1. Limpiar espacios en blanco en los nombres de las columnas
         df.columns = df.columns.str.strip()
+
+        # 2. Mapeo flexible: intenta renombrar todas las variantes posibles
         df = df.rename(columns={
             "Marca temporal": "timestamp",
             "Nombre de la actividad": "actividad",
             "Descripcion de la actividad": "descripcion",
             "Fecha": "fecha",
             "Linea": "linea",
+            "Línea": "linea",
             "Maquina": "maquina",
             "Agrega el archivo PDF o escaneado": "archivo"
         })
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-        if "linea" in df.columns:
-            df["linea"] = df["linea"].astype(str).str.upper().str.strip()
-        if "maquina" in df.columns:
-            df["maquina"] = df["maquina"].astype(str).str.upper().str.strip()
-
-        for col in ["linea", "maquina", "actividad", "descripcion"]:
+        # 3. --- BLOQUE ANTI-KEYERROR ---
+        # Si 'linea' no existe tras el rename, la creamos para que Streamlit no se cierre
+        columnas_criticas = ["linea", "maquina", "actividad", "descripcion"]
+        for col in columnas_criticas:
             if col not in df.columns:
-                df[col] = "No disponible"
+                df[col] = "Columna no encontrada"
+
+        # 4. Procesamiento de datos (ahora es seguro porque la columna ya existe)
+        if "timestamp" in df.columns:
+            df["timestamp"] = pd.to_datetime(df["timestamp"], errors='coerce')
+
+        df["linea"] = df["linea"].astype(str).str.upper().str.strip()
+        df["maquina"] = df["maquina"].astype(str).str.upper().str.strip()
+
         return df.sort_values("timestamp", ascending=False)
     except Exception as e:
         st.error(f"Error cargando datos: {e}")
@@ -159,6 +169,7 @@ else:
                         st.rerun()
 
 st.markdown("<br><hr><p style='text-align:center; color:gray;'>Gestión de Documentos | Developed by Erik Armenta</p>", unsafe_allow_html=True)
+
 
 
 
